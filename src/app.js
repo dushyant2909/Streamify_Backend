@@ -3,6 +3,9 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import morgan from "morgan";
 import logger from '../logger.js';
+import errorHandler from './middlewares/ErrorHandler.js';
+
+import healthCheckRoute from './routes/healthCheckRoutes.js';
 
 const morganFormat = ":method :url :status :response-time ms";
 
@@ -47,5 +50,10 @@ app.use(
     })
 );
 
+// routes
+app.use('/api/v1/healthcheck', healthCheckRoute)
+
+// Keep this error handler middleware at last
+app.use(errorHandler)
 
 export { app }
