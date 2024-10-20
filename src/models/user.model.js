@@ -1,6 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import dotenv from "dotenv"
+dotenv.config();
 
 const userSchema = new Schema({
     username: {
@@ -53,7 +55,8 @@ const userSchema = new Schema({
         url: {
             type: String,
             trim: true
-        }
+        },
+        _id: false // Prevents the automatic creation of an _id field
     }],
     watchHistory: [
         {
@@ -73,11 +76,12 @@ const userSchema = new Schema({
 })
 
 // Pre-hook to hash password
-userSchema.pre("save", function (next) {
+userSchema.pre("save", async function (next) {
     if (!this.isModified("password"))
         return next();
 
-    this.password = bcrypt.hash(this.password, 10)
+    // Must use await else will not hash pwd
+    this.password = await bcrypt.hash(this.password, 10)
     next();
 })
 
@@ -85,8 +89,6 @@ userSchema.pre("save", function (next) {
 userSchema.methods.isPasswordCorrect = async function (password) {
     return await bcrypt.compare(password, this.password)
 }
-
-console.log("In user model", process.env.ACCESS_TOKEN_SECRET)
 
 userSchema.methods.generateAccessToken = async function () {
     return jwt.sign(
