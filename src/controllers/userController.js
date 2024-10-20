@@ -253,11 +253,43 @@ const getCurrentUser = asyncHandler(async (req, res) => {
         ))
 })
 
+const updateUserProfile = asyncHandler(async (req, res) => {
+    const userId = req.user._id; // Assuming you have middleware for authentication
+
+    // Build an object dynamically to hold the fields that need updating
+    const updateFields = {};
+
+    // Only add the fields to the update object if they are provided
+    if (req.body.fullName) updateFields.fullName = req.body.fullName;
+    if (req.body.bio) updateFields.bio = req.body.bio;
+    if (req.body.socialLinks) updateFields.socialLinks = req.body.socialLinks;
+
+    const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        updateFields, // dynamically built object
+        {
+            new: true, // Return the updated document
+            runValidators: true // Apply validators defined in the schema
+        }
+    ).select('-password -refreshToken'); // Exclude sensitive fields
+
+    if (!updatedUser) {
+        throw new ApiError(404, 'User not found');
+    }
+
+    return res.status(200)
+        .json(new ApiResponse(200,
+            updatedUser,
+            "Account details updated successfully"
+        ))
+})
+
 export {
     registerUser,
     loginUser,
     refreshAccessToken,
     logoutUser,
     changeCurrentPassword,
-    getCurrentUser
+    getCurrentUser,
+    updateUserProfile
 }
