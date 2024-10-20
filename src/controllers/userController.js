@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinaryFileUpload.js";
 import fs from 'fs';
 import jwt from 'jsonwebtoken'
+import deleteFileFromCloudinary from "../utils/deleteFileFromCloudinary.js";
 
 // Generate access and refresh token function
 const generateAccessAndRefreshToken = async (userId) => {
@@ -53,7 +54,9 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Handle profile image and banner image
     let profileImageUrl = null;
+    let profileImagePublicId = null;
     let bannerImageUrl = null;
+    let bannerImagePublicId = null;
 
     if (req.files?.profileImage) {
         // If profileImage is uploaded, process the file
@@ -61,6 +64,7 @@ const registerUser = asyncHandler(async (req, res) => {
         const profileImageUpload = await uploadOnCloudinary(profileImageFilePath);
         if (profileImageUpload) {
             profileImageUrl = profileImageUpload.secure_url;
+            profileImagePublicId = profileImageUpload.public_id;
         }
     }
 
@@ -70,6 +74,7 @@ const registerUser = asyncHandler(async (req, res) => {
         const bannerImageUpload = await uploadOnCloudinary(bannerImageFilePath);
         if (bannerImageUpload) {
             bannerImageUrl = bannerImageUpload.secure_url;
+            bannerImagePublicId = bannerImageUpload.public_id;
         }
     }
 
@@ -79,7 +84,9 @@ const registerUser = asyncHandler(async (req, res) => {
         email,
         password,
         profileImage: profileImageUrl,
+        profileImagePublicId,
         bannerImage: bannerImageUrl,
+        bannerImagePublicId,
         bio,
         socialLinks
     })
@@ -284,6 +291,84 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         ))
 })
 
+const updateUserProfileImage = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    if (!req.files || !req.files.profileImage) {
+        throw new ApiError(400, "Profile image is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.profileImage) {
+        const oldPublicId = user.profileImagePublicId;
+        if (oldPublicId)
+            await deleteFileFromCloudinary(oldPublicId)
+    }
+
+    let profileImageUrl = null;
+    let profileImagePublicId = null;
+
+    const profileImageFilePath = req.files.profileImage[0].path;
+    const profileImageUpload = await uploadOnCloudinary(profileImageFilePath);
+    if (profileImageUpload) {
+        profileImageUrl = profileImageUpload.secure_url;
+        profileImagePublicId = profileImageUpload.public_id;
+    }
+
+    user.profileImage = profileImageUrl;
+    user.profileImagePublicId = profileImagePublicId
+
+    await user.save()
+
+    const updatedUser = await User.findById(userId).select("-password -refreshToken");
+
+    return res.status(200)
+        .json(new ApiResponse(200, updatedUser, "Profile image updated successfully"))
+})
+
+const updateUserBannerImage = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    if (!req.files || !req.files.bannerImage) {
+        throw new ApiError(400, "Banner image is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.bannerImage) {
+        const oldPublicId = user.bannerImagePublicId;
+        if (oldPublicId)
+            await deleteFileFromCloudinary(oldPublicId)
+    }
+
+    let bannerImageUrl = null;
+    let bannerImagePublicId = null;
+
+    const bannerImageFilePath = req.files.bannerImage[0].path;
+    const bannerImageUpload = await uploadOnCloudinary(bannerImageFilePath);
+    if (bannerImageUpload) {
+        bannerImageUrl = bannerImageUpload.secure_url;
+        bannerImagePublicId = bannerImageUpload.public_id;
+    }
+
+    user.bannerImage = bannerImageUrl;
+    user.bannerImagePublicId = bannerImagePublicId;
+
+    await user.save()
+
+    const updatedUser = await User.findById(userId).select("-password -refreshToken");
+
+    return res.status(200)
+        .json(new ApiResponse(200, updatedUser, "Banner image updated successfully"))
+})
+
 export {
     registerUser,
     loginUser,
@@ -291,5 +376,7 @@ export {
     logoutUser,
     changeCurrentPassword,
     getCurrentUser,
-    updateUserProfile
+    updateUserProfile,
+    updateUserProfileImage,
+    updateUserBannerImage
 }

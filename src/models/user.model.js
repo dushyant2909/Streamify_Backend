@@ -34,8 +34,16 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    profileImagePublicId: {
+        type: String, // Stores the public_id from Cloudinary for future deletion
+        required: true
+    },
     bannerImage: {
-        type: String,
+        type: String, // Stores the secure_url for banner image
+        default: null
+    },
+    bannerImagePublicId: {
+        type: String, // Stores the public_id for banner image
         default: null
     },
     bio: {
