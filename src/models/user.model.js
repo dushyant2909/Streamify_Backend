@@ -94,7 +94,7 @@ userSchema.methods.generateAccessToken = async function () {
     return jwt.sign(
         // Create a payload
         {
-            id: this._id,
+            _id: this._id,
             email: this.email,
             username: this.username
         },
@@ -109,7 +109,7 @@ userSchema.methods.generateRefreshToken = async function () {
     return jwt.sign(
         // Create a payload
         {
-            id: this._id,
+            _id: this._id,
         },
         process.env.REFRESH_TOKEN_SECRET,
         {

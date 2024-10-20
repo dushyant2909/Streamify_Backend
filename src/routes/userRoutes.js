@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/userController.js";
+import { loginUser, refreshAccessToken, registerUser } from "../controllers/userController.js";
 import { upload } from "../middlewares/multerMiddleware.js";
 
 const userRoute = Router()
@@ -16,5 +16,8 @@ userRoute.route('/register').post(
         }
     ]),
     registerUser)
+
+userRoute.route('/login').post(loginUser);
+userRoute.route('/refresh-access-token').post(refreshAccessToken)
 
 export default userRoute
