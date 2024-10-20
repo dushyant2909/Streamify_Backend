@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loginUser, logoutUser, refreshAccessToken, registerUser } from "../controllers/userController.js";
+import { changeCurrentPassword, loginUser, logoutUser, refreshAccessToken, registerUser } from "../controllers/userController.js";
 import { upload } from "../middlewares/multerMiddleware.js";
 import { verifyJWT } from "../middlewares/authMiddleware.js";
 
@@ -22,8 +22,8 @@ userRoute.route('/login').post(loginUser);
 userRoute.route('/refresh-access-token').post(refreshAccessToken)
 
 // Secured routes
-userRoute.route('/logout').post(
-    verifyJWT, logoutUser
-)
+userRoute.use(verifyJWT)
+userRoute.route('/logout').post(logoutUser)
+userRoute.route('/change-password').post(changeCurrentPassword)
 
 export default userRoute
