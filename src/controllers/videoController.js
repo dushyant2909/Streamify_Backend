@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinaryFileUpload.js";
 import { Like } from "../models/like.model.js";
+import deleteFileFromCloudinary from "../utils/deleteFileFromCloudinary.js";
 
 const uploadVideo = asyncHandler(async (req, res) => {
     const { title, description, visibility, category, tags } = req.body;
@@ -126,7 +127,99 @@ const toggleVideoLikeDislike = asyncHandler(async (req, res) => {
     )
 })
 
+const updateVideoDetails = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    if (!videoId)
+        throw new ApiError(404, "Video id is required")
+    if (!isValidObjectId(videoId))
+        throw new ApiError(400, "Invalid video id")
+
+    const userId = req.user._id;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // Validate owner
+    if (video.creator.toString() !== userId.toString()) {
+        throw new ApiError(403, "You do not have permission to update this video");
+    }
+    const updateFields = {};
+
+    if (req.body.title) updateFields.title = req.body.title;
+    if (req.body.description) updateFields.description = req.body.description;
+    if (req.body.tags) updateFields.tags = req.body.tags
+    if (req.body.visibility) updateFields.visibility = req.body.visibility
+    if (req.body.category) updateFields.category = req.body.category
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        updateFields,
+        {
+            new: true
+        }
+    ).select("-videoThumbnailPublicId -videoUrlPublicId")
+
+    return res.status(200)
+        .json(new ApiResponse(200,
+            updatedVideo,
+            "Video details updated successfully"
+        ))
+})
+
+const updateVideoThumbnail = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    if (!videoId)
+        throw new ApiError(404, "Video id is required")
+    if (!isValidObjectId(videoId))
+        throw new ApiError(400, "Invalid video id")
+
+    const userId = req.user._id;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // Validate owner
+    if (video.creator.toString() !== userId.toString()) {
+        throw new ApiError(403, "You do not have permission to update this video");
+    }
+
+    if (!req.files || !req.files.thumbnail) {
+        throw new ApiError(400, "Thumbnail image is required");
+    }
+
+    const oldPublicId = video.videoThumbnailPublicId;
+    await deleteFileFromCloudinary(oldPublicId)
+
+    let thumbnailImageUrl = null;
+    let thumbnailPublicId = null;
+
+    const thumbnailImageFilePath = req.files.thumbnail[0].path;
+    const thumbnailUpload = await uploadOnCloudinary(thumbnailImageFilePath)
+    if (thumbnailUpload) {
+        thumbnailImageUrl = thumbnailUpload.secure_url
+        thumbnailPublicId = thumbnailUpload.public_id
+    }
+
+    video.thumbnail = thumbnailImageUrl;
+    video.videoThumbnailPublicId = thumbnailPublicId
+
+    await video.save();
+
+    const updatedVideo = await Video.findById(video._id)
+        .select("-videoThumbnailPublicId -videoUrlPublicId")
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedVideo, "Video thumbnail updated successfully")
+    )
+})
+
 export {
     uploadVideo,
-    toggleVideoLikeDislike
+    toggleVideoLikeDislike,
+    updateVideoDetails,
+    updateVideoThumbnail
 }
