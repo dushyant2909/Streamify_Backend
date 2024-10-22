@@ -7,6 +7,7 @@ import errorHandler from './middlewares/ErrorHandler.js';
 
 import healthCheckRoute from './routes/healthCheckRoutes.js';
 import userRoute from './routes/userRoutes.js';
+import videoRoute from './routes/videoRoutes.js';
 
 const morganFormat = ":method :url :status :response-time ms";
 
@@ -54,6 +55,7 @@ app.use(
 // routes
 app.use('/api/v1/healthcheck', healthCheckRoute)
 app.use('/api/v1/users', userRoute)
+app.use('/api/v1/videos', videoRoute)
 
 // Keep this error handler middleware at last
 app.use(errorHandler)

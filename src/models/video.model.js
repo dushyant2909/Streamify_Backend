@@ -17,8 +17,16 @@ const videoSchema = new Schema({
         type: String,
         required: true
     },
+    videoUrlPublicId: {
+        type: String,
+        required: true
+    },
     thumbnail: {
         type: String, // URL of the video's thumbnail image
+        required: true
+    },
+    videoThumbnailPublicId: {
+        type: String,
         required: true
     },
     creator: {
