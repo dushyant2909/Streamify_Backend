@@ -1,19 +1,19 @@
-import mongoose from "mongoose";
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+import mongoose, { Schema } from "mongoose";
 
-const subscriptionSchema = new mongoose.Schema({
-    subscriber: { // One who subscribe your channel
+const subscriptionSchema = new Schema({
+    subscriber: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: 'User',        // Reference to the user who is subscribing
+        required: true
     },
-    channel: { // One to whom you have subscribed the channel
+    channel: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    }
-}, {
-    timestamps: true
-})
+        ref: 'User',        // Reference to the channel (user) being subscribed to
+        required: true
+    },
+},
+    {
+        timestamps: true
+    })
 
-subscriptionSchema.plugin(mongooseAggregatePaginate);
-
-export const Subscription = mongoose.model("Subscription", subscriptionSchema);
+export const Subscription = new mongoose.model('Subscription', subscriptionSchema)

@@ -13,15 +13,16 @@ cloudinary.config({
 })
 
 const uploadOnCloudinary = async (localFilePath) => {
+    let response = null;
     try {
         if (!localFilePath)
             return null;
-
+        
         // upload the file on cloudinary
-        const response = await cloudinary.uploader.upload(localFilePath,
+        response = await cloudinary.uploader.upload(localFilePath,
             {
                 resource_type: "auto", // Automatically detect type of file,
-                folder: "VideoTube"
+                folder: "Streamify_Videotube"
             })
 
         // File has been uploaded successfully
@@ -32,9 +33,15 @@ const uploadOnCloudinary = async (localFilePath) => {
     } catch (error) {
         fs.unlinkSync(localFilePath) // Remove the locally saved temp file
         // as the upload operation got failed at cloudinary.
+
+        // If Cloudinary upload succeeded, but an error occurred afterward,
+        // delete the uploaded file from Cloudinary
+        if (response && response.public_id) {
+            await cloudinary.uploader.destroy(response.public_id);
+        }
+
         console.log("Error in uploading file to cloudinary::", error.message);
-        throw error;
-        // return null;
+        return null;
     }
 }
 

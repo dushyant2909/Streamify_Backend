@@ -1,23 +1,17 @@
-import mongoose from "mongoose";
-import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+import mongoose, { Schema } from "mongoose";
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import dotenv from "dotenv"
+dotenv.config();
 
-const userSchema = new mongoose.Schema({
-    watchHistory: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Video",
-            required: true
-        }
-    ],
+const userSchema = new Schema({
     username: {
         type: String,
         required: true,
         unique: true,
         lowercase: true,
         trim: true,
-        index: true// For seamless searching
+        index: true// For seamless searching using username
     },
     email: {
         type: String,
@@ -32,46 +26,85 @@ const userSchema = new mongoose.Schema({
         trim: true,
         index: true,
     },
-    avatar: {
-        type: String,// Cloudinary url to be stored
-        required: true,
-    },
-    coverImage: {
-        type: String,
-    },
     password: {
         type: String,
-        required: [true, 'Password is required']
+        required: ['Password is required', true]
     },
-    refreshtoken: {
+    profileImage: {
         type: String,
+        required: true
+    },
+    profileImagePublicId: {
+        type: String, // Stores the public_id from Cloudinary for future deletion
+        required: true
+    },
+    bannerImage: {
+        type: String, // Stores the secure_url for banner image
+        default: null
+    },
+    bannerImagePublicId: {
+        type: String, // Stores the public_id for banner image
+        default: null
+    },
+    bio: {
+        type: String,
+        trim: true, // trim any extra spaces
+        maxlength: 255
+    },
+    premiumSubscription: {
+        type: Boolean,
+        default: false
+    },
+    socialLinks: [{
+        platform: {
+            type: String,
+            trim: true
+        },
+        url: {
+            type: String,
+            trim: true
+        },
+        _id: false // Prevents the automatic creation of an _id field
+    }],
+    watchHistory: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "Video" // same as the export name in model
+        }
+    ],
+    subscribersCount: {
+        type: Number,
+        default: 0
+    },
+    refreshToken: {
+        type: String
     }
 }, {
     timestamps: true
 })
 
-// Before saving password just hash it
+// Pre-hook to hash password
 userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
+    if (!this.isModified("password"))
+        return next();
 
-    this.password = await bcrypt.hash(this.password, 10);
+    // Must use await else will not hash pwd
+    this.password = await bcrypt.hash(this.password, 10)
     next();
 })
 
-// compare password using bcrypt
+// Some methods
 userSchema.methods.isPasswordCorrect = async function (password) {
-    return await bcrypt.compare(password, this.password);
+    return await bcrypt.compare(password, this.password)
 }
 
-// cookies-token generator
-userSchema.methods.generateAccessToken = function () {
+userSchema.methods.generateAccessToken = async function () {
     return jwt.sign(
-        // create a payload
+        // Create a payload
         {
-            _id: this.id,
-            username: this.usernamem,
-            fullName: this.fullName,
-            email: this.email
+            _id: this._id,
+            email: this.email,
+            username: this.username
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -80,11 +113,11 @@ userSchema.methods.generateAccessToken = function () {
     )
 }
 
-userSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = async function () {
     return jwt.sign(
         // Create a payload
         {
-            _id: this._id
+            _id: this._id,
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
@@ -92,8 +125,5 @@ userSchema.methods.generateRefreshToken = function () {
         }
     )
 }
-
-userSchema.plugin(mongooseAggregatePaginate);
-
 
 export const User = mongoose.model("User", userSchema)
