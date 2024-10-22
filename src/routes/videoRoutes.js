@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { toggleVideoLikeDislike, uploadVideo } from '../controllers/videoController.js';
+import { toggleVideoLikeDislike, updateVideoDetails, uploadVideo } from '../controllers/videoController.js';
 import { verifyJWT } from '../middlewares/authMiddleware.js';
 import { upload } from '../middlewares/multerMiddleware.js';
 
@@ -19,5 +19,6 @@ videoRoute.route('/upload').post(
     ])
     , uploadVideo)
 videoRoute.route("/toggleLike").post(toggleVideoLikeDislike)
+videoRoute.route("/update/:videoId").patch(updateVideoDetails)
 
 export default videoRoute;
