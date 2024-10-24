@@ -217,9 +217,53 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
     )
 })
 
+const deleteVideo = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    await session.startTransaction(); // Start the transaction
+    try {
+        const { videoId } = req.params;
+
+        if (!videoId) {
+            throw new ApiError(401, "Video id is required");
+        }
+
+        if (!isValidObjectId(videoId)) {
+            throw new ApiError(401, "Invalid video id");
+        }
+
+        const userId = req.user._id;
+
+        const video = await Video.findById(videoId).session(session);
+        if (!video) {
+            throw new ApiError(404, "Video not found");
+        }
+
+        if (video.creator.toString() !== userId.toString()) {
+            throw new ApiError(403, "You do not have permission to delete this video");
+        }
+
+        // Delete likes/dislikes record for that video
+        await Like.deleteMany({ video: videoId }).session(session);
+
+        // Delete the video
+        await Video.findByIdAndDelete(
+            videoId
+        ).session(session)
+
+        await session.commitTransaction(); // Commit the transaction
+        return res.status(200).json(new ApiResponse(200, {}, "Video deleted successfully"));
+    } catch (error) {
+        await session.abortTransaction(); // Rollback on error
+        next(error); // Pass the error to the next middleware
+    } finally {
+        session.endSession(); // End the session
+    }
+};
+
 export {
     uploadVideo,
     toggleVideoLikeDislike,
     updateVideoDetails,
-    updateVideoThumbnail
+    updateVideoThumbnail,
+    deleteVideo
 }
