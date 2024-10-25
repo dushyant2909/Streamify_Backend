@@ -245,6 +245,10 @@ const deleteVideo = async (req, res, next) => {
         // Delete likes/dislikes record for that video
         await Like.deleteMany({ video: videoId }).session(session);
 
+        // Delete video from cloudinary
+        await deleteFileFromCloudinary(video.videoUrlPublicId, "video")
+        await deleteFileFromCloudinary(video.videoThumbnailPublicId)
+
         // Delete the video
         await Video.findByIdAndDelete(
             videoId
