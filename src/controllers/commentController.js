@@ -1,4 +1,4 @@
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { Comment } from "../models/comment.model.js";
 import { Video } from "../models/video.model.js";
 import ApiError from "../utils/ApiError.js";
@@ -25,7 +25,7 @@ const createComment = asyncHandler(async (req, res) => {
 
     const comment = await Comment.create({
         user: userId,
-        video,
+        video: video._id,
         text
     })
 
@@ -67,7 +67,41 @@ const editComment = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedComment, "Comment edited successfully"))
 })
 
+const deleteComment = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    await session.startTransaction()
+    try {
+        const { commentId } = req.params;
+        if (!commentId)
+            throw new ApiError(401, "Comment id is required");
+        if (!isValidObjectId(commentId))
+            throw new ApiError(401, "Invalid comment id")
+
+        const userId = req.user._id;
+
+        const comment = await Comment.findById(commentId).session(session);
+        if (!comment)
+            throw new ApiError(404, "Comment not found");
+
+        if (comment.user.toString() !== userId.toString()) {
+            throw new ApiError(403, "You do not have permission to delete this comment");
+        }
+
+        await Comment.findByIdAndDelete(commentId)
+            .session(session)
+
+        await session.commitTransaction(); // Commit the transaction
+        return res.status(200).json(new ApiResponse(200, {}, "Comment deleted successfully"));
+    } catch (error) {
+        await session.abortTransaction();
+        next(error);
+    } finally {
+        session.endSession();
+    }
+}
+
 export {
     createComment,
-    editComment
+    editComment,
+    deleteComment
 }
