@@ -29,9 +29,45 @@ const createComment = asyncHandler(async (req, res) => {
         text
     })
 
-    return res.status(200)
-        .json(new ApiResponse(200, comment, "Comment created successfully"))
+    return res.status(201)
+        .json(new ApiResponse(201, comment, "Comment created successfully"))
 
 })
 
-export { createComment }
+const editComment = asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+    if (!commentId)
+        throw new ApiError(401, "Comment id is required");
+    if (!isValidObjectId(commentId))
+        throw new ApiError(401, "Invalid comment id")
+
+    const { updateText } = req.body;
+    if (!updateText)
+        throw new ApiError(401, "Updated comment text is required")
+
+    const userId = req.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment)
+        throw new ApiError(404, "Comment not found");
+
+    if (comment.user.toString() !== userId.toString()) {
+        throw new ApiError(403, "You do not have permission to update this comment");
+    }
+
+    const updatedComment = await Comment.findByIdAndUpdate(
+        commentId,
+        {
+            text: updateText
+        },
+        { new: true }
+    )
+
+    return res.status(200)
+        .json(new ApiResponse(200, updatedComment, "Comment edited successfully"))
+})
+
+export {
+    createComment,
+    editComment
+}
