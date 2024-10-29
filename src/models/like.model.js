@@ -9,7 +9,10 @@ const likeSchema = new Schema({
     video: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Video',
-        required: true
+    },
+    comment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment'
     },
     type: {
         type: String,
